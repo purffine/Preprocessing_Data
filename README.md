@@ -1,6 +1,6 @@
 # Preprocessing_Data
 
-**Đề tài:** Loại bỏ nhiễu từ các đánh giá của Shopee (và phân tích và đánh giá số sao của bình luận sản phẩm trên Shopee)
+**Đề tài:** _**Loại bỏ nhiễu từ các đánh giá của Shopee (và phân tích và đánh giá số sao của bình luận sản phẩm trên Shopee)**_
 
 **Mô tả:**
 Dự án này tập trung vào việc phân tích và đánh giá cảm xúc của bình luận sản phẩm trên Shopee. Mục tiêu là xác định các bình luận spam, trích xuất từ khóa quan trọng liên quan đến chất lượng sản phẩm/dịch vụ, và xây dựng mô hình để dự đoán đánh giá tích cực/tiêu cực từ bình luận mới.
