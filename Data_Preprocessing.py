@@ -49,7 +49,7 @@ quality_keywords = [
     "bền", "đẹp", "chắc chắn", "sắc nét", "rõ ràng", "tinh tế", "sắc sảo", "tinh xảo",
     "hiện đại", "sang trọng", "cao cấp", "chất liệu tốt", "giao hàng nhanh", "phục vụ tốt",
     "tư vấn nhiệt tình", "thân thiện", "chu đáo", "chuyên nghiệp", "uy tín", "dễ sử dụng",
-    "tiện lợi", "hiệu quả", "hài lòng"
+    "tiện lợi", "hiệu quả", "hài lòng", "hạn sử dụng", "chắc chắn", "cẩn thận", "gói hàng"
 ]
 
 # Hàm kiểm tra xem bài đánh giá có chứa từ khóa liên quan đến chất lượng/dịch vụ hay không
@@ -97,7 +97,7 @@ def process_data(cleaned_file):
             if num_parts >= 4:  # Đảm bảo có ít nhất 4 trường
                 review_words = word_tokenize(parts[3])
                 product_name = parts[0]
-                category = parts[1]
+                category = parts[1] # Lấy tên phân loại sản phẩm
                 rating = parts[2]
             else:
                 continue
@@ -120,8 +120,12 @@ def process_data(cleaned_file):
 
                 if similarity_bert >= 0.1:  # Điều chỉnh ngưỡng độ tương đồng
                     spam_score += 1
+                
+                # Thêm kiểm tra liên quan đến tên phân loại sản phẩm
+                if calculate_similarity(parts[3], category) > 0.3: 
+                    spam_score += 2  # Tăng điểm nếu liên quan đến phân loại
 
-                # 4. Phân tích cú pháp với underthesea
+                # Phân tích cú pháp với underthesea
                 pos_tags = pos_tag(parts[3])
                 num_verbs = sum([1 for word, tag in pos_tags if tag.startswith('V')])
                 num_nouns = sum([1 for word, tag in pos_tags if tag.startswith('N')])
@@ -129,7 +133,21 @@ def process_data(cleaned_file):
                 if num_verbs >= 2 and num_nouns >= 3:  # Điều chỉnh ngưỡng phân tích cú pháp
                     spam_score += 1
 
-                # 5. Kiểm tra tỉ lệ chữ IN HOA (ví dụ: không quá 20%)
+                # 1. Tính toán độ tương đồng cosine với Sentence Embedding
+                product_embedding = sentence_model.encode(product_name, convert_to_tensor=True)
+                review_embedding = sentence_model.encode(parts[3], convert_to_tensor=True)
+                similarity_score = util.pytorch_cos_sim(review_embedding, product_embedding).item()
+
+                # 2. Phân tích từ khóa chung
+                product_words = word_tokenize(product_name.lower())
+                review_words = word_tokenize(parts[3].lower())
+                common_words = set(product_words) & set(review_words)
+                if similarity_score < 0.2:
+                    spam_score -= 2
+                elif similarity_score < 0.3 and len(common_words) < 3:
+                    spam_score -= 1
+
+                # Kiểm tra tỉ lệ chữ IN HOA (ví dụ: không quá 20%)
                 uppercase_ratio = sum(1 for c in parts[3] if c.isupper()) / len(parts[3])
                 if uppercase_ratio > 0.2:
                     spam_score -= 1  # Trừ điểm nếu tỉ lệ chữ in hoa quá cao
@@ -305,12 +323,13 @@ model = AutoModel.from_pretrained("vinai/phobert-base")
 sentence_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 # --- Chạy chương trình ---
+
 # --- Xử lý dữ liệu và trích xuất từ khóa ---
 clean_and_save(input_file, cleaned_file)
 filtered_data, spam_data, keywords = process_data(cleaned_file)
 print("Các từ khóa được trích xuất:", keywords)
-save_filtered_data(filtered_data, filtered_file) 
-save_filtered_data(spam_data, spam_file) 
+save_filtered_data(filtered_data, filtered_file)
+save_filtered_data(spam_data, spam_file)
 keyword_file = os.path.join(data_dir, 'keyword.txt')
 save_keywords(keywords, keyword_file)
 
